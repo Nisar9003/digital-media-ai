@@ -1,36 +1,46 @@
-# Planner Agent — Claude Sonnet (Anthropic)
+# Planner Agent — Claude Sonnet
+# Creates a detailed content brief using company brand context
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage, HumanMessage
+from brand.loader import get_brand_context_string
 import os
 
-llm = ChatAnthropic(
-    model="claude-sonnet-4-6",
-    api_key=os.getenv("ANTHROPIC_API_KEY", "dummy")
-)
 
-SYSTEM_PROMPT = """
-You are the Planner Agent. Create a content brief in JSON format only:
-{
+def get_llm() -> ChatAnthropic:
+    return ChatAnthropic(
+        model="claude-sonnet-4-6",
+        api_key=os.getenv("ANTHROPIC_API_KEY", "dummy")
+    )
+
+def build_system_prompt() -> str:
+    brand = get_brand_context_string()
+    return f"""You are the Planner Agent for a company's social media content system.
+
+{brand}
+
+Using the above company context, create a content brief in JSON format only:
+{{
   "tone": "professional",
-  "key_message": "main point",
+  "key_message": "main point, aligned with company identity",
   "platform_guidelines": "specific tips",
-  "image_style": "visual description",
+  "image_style": "visual description matching brand colors/style",
   "hashtag_strategy": "approach"
-}
+}}
 """
 
 async def run_planner(state: dict) -> dict:
-    goal         = state.get("goal", "")
-    supervisor   = state.get("supervisor_output", "")
+    goal       = state.get("goal", "")
+    supervisor = state.get("supervisor_output", "")
 
     try:
+        llm = get_llm()
         response = await llm.ainvoke([
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=build_system_prompt()),
             HumanMessage(content=f"Goal: {goal}\nSupervisor: {supervisor}")
         ])
         state["brief"] = response.content
-    except Exception as e:
-        state["brief"] = f'{{"tone": "professional", "key_message": "{goal}", "platform_guidelines": "Keep it concise", "image_style": "modern tech", "hashtag_strategy": "5 relevant tags"}}'
+    except Exception:
+        state["brief"] = f'{{"tone": "professional", "key_message": "{goal}", "platform_guidelines": "Keep it concise", "image_style": "modern tech, teal accents", "hashtag_strategy": "5 relevant tags"}}'
 
     return state

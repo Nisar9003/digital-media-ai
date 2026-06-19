@@ -1,0 +1,18 @@
+{
+  "company_name": "Your Company Name",
+  "tagline": "Add your tagline here",
+  "website": "https://yourcompany.com",
+  "what_we_do": "Describe what your company does in 1-2 sentences. This is used by the AI to write on-brand content.",
+  "services": [
+    "Service 1",
+    "Service 2",
+    "Service 3"
+  ],
+  "brand_voice": {
+    "tone": "professional and friendly",
+    "style_notes": "Add notes about how your company talks — formal, casual, technical, etc.",
+    "keywords_to_use": [],
+    "avoid": []
+  },
+  "target_audience": "Describe who your posts are for"
+}

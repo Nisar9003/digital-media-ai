@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --teal:        #008080;
+  --teal-dark:   #006666;
+  --teal-light:  #E6F5F5;
+  --navy:        #0F2A3D;
+  --ink:         #1A2B3C;
+  --body:        #5B6B7B;
+  --muted:       #8896A3;
+  --bg:          #FFFFFF;
+  --bg-soft:     #F7FAFB;
+  --border:      #E5EBED;
+  --orange:      #FF7A45;
+  --green:       #2BA84A;
+  --amber:       #F2A93B;
+  --red:         #E0533D;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .heading {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-soft); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(0,128,128,0.35); }
+  70%  { box-shadow: 0 0 0 8px rgba(0,128,128,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,128,128,0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -300% 0; }
+  100% { background-position:  300% 0; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.fade-up { animation: fadeUp 0.45s ease forwards; }
+.pulse-ring { animation: pulseRing 1.8s infinite; }
+.spin { animation: spin 0.9s linear infinite; }
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-soft) 25%, var(--border) 50%, var(--bg-soft) 75%);
+  background-size: 300% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 8px;
+}
+
+.btn-primary {
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  transition: background 0.18s ease, transform 0.12s ease;
+}
+.btn-primary:hover:not(:disabled) { background: var(--teal-dark); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.card-hover { transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease; }
+.card-hover:hover { box-shadow: 0 8px 24px rgba(15,42,61,0.08); transform: translateY(-2px); border-color: var(--teal) !important; }
+
+input::placeholder, textarea::placeholder { color: var(--muted); }
