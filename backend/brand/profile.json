@@ -1,18 +1,131 @@
 {
-  "company_name": "Your Company Name",
-  "tagline": "Add your tagline here",
-  "website": "https://yourcompany.com",
-  "what_we_do": "Describe what your company does in 1-2 sentences. This is used by the AI to write on-brand content.",
+  "company_name": "KeyDevs Technologies",
+  "tagline": "Bespoke Web & Mobile App Development Company",
+  "website": "https://keydevs.pk",
+  "location": "Lahore, Pakistan (offices in Multan, USA, Dubai)",
+  "founded_summary": "Founded in 2013 by Yaseer (Director), Junaid (Co-Founder), and Rehan ur Rehman (Co-Founder) as a small group of three passionate freelancers. Nearly a decade later, KeyDevs has grown into a globally recognized digital agency with 40+ professionals, known for excellence in web and mobile app development across Pakistan and worldwide.",
+
+  "what_we_do": "KeyDevs Technologies is a web and mobile app development company based in Lahore, Pakistan, offering bespoke, state-of-the-art digital solutions for startups, SMEs, and enterprises. Services span mobile app development, web development, eCommerce, game development, UI/UX design, enterprise solutions (ERP/CRM/CMS), and digital marketing. The company helps startups and SMEs achieve 3X ROI with tailored solutions and prides itself on perfection as a habit, not just a goal.",
+
   "services": [
-    "Service 1",
-    "Service 2",
-    "Service 3"
+    "Mobile App Development (iPhone, Android, Flutter, Cross-Platform)",
+    "iOS & Android Game Development (2D/3D, AR/VR)",
+    "Web Development (PHP, WordPress, Codeigniter, Laravel, AngularJS, NodeJS)",
+    "E-Commerce Development (Magento, Shopify, WooCommerce, Drupal)",
+    "UI/UX Design",
+    "Startup MVP Development",
+    "Enterprise Solutions (ERP, CRM, CMS)",
+    "Digital Marketing (SEO, Social Media Marketing, Facebook Ads, Google Ads, YouTube Promotion)"
   ],
-  "brand_voice": {
-    "tone": "professional and friendly",
-    "style_notes": "Add notes about how your company talks — formal, casual, technical, etc.",
-    "keywords_to_use": [],
-    "avoid": []
+
+  "industries_served": [
+    "Taxi Booking", "Food Delivery", "Car Wash", "Real Estate",
+    "Banking & Finance", "Health & Fitness", "Travel & Tourism",
+    "Social Media & Dating", "Instant Messaging", "Media & Entertainment",
+    "Fantasy Sports", "Chatbots", "E-commerce & Retail"
+  ],
+
+  "stats": {
+    "projects_delivered": "110+ Successfully Developed Projects",
+    "unique_ideas_submitted": "110+ Unique Ideas Submitted",
+    "client_reviews_5star": "90+ Verified 5-Star Client Reviews",
+    "team_size": "40+ Professionals",
+    "client_rating": "4.8/5.0 on Clutch",
+    "years_active": "Since 2013 (nearly a decade of operation)"
   },
-  "target_audience": "Describe who your posts are for"
+
+  "company_history": [
+    {"year": 2013, "milestone": "The Beginning — KeyDevs born as a small group of passionate freelancers"},
+    {"year": 2014, "milestone": "Early Growth — first significant web and mobile app projects for local clients"},
+    {"year": 2015, "milestone": "First Milestone — officially incorporated, started gaining attention from larger clients"},
+    {"year": 2016, "milestone": "Stepping into the Global Market — delivered projects for international clients"},
+    {"year": 2017, "milestone": "Innovative Leap — introduced AR and VR solutions for gaming, education, healthcare"},
+    {"year": 2018, "milestone": "New Horizons — opened first international office in the USA"},
+    {"year": 2019, "milestone": "Diversification — broadened into e-commerce and enterprise-grade solutions"},
+    {"year": 2020, "milestone": "Navigating the Pandemic — helped businesses adapt to digital transformation"},
+    {"year": 2021, "milestone": "Scaling New Heights — market leader in custom mobile app and game development"},
+    {"year": 2022, "milestone": "Tech Innovation — launched solutions in AI, blockchain, and IoT"},
+    {"year": 2023, "milestone": "Global Recognition — recognized among top digital agencies globally"},
+    {"year": 2024, "milestone": "Future-Ready — continued growth with focus on cutting-edge digital transformation"}
+  ],
+
+  "leadership": [
+    {"name": "Yaseer", "title": "Director", "bio": "Began career in Project Management, transitioned into UI/UX and front-end mobile delivery. Recognized the growing need for outsourced development solutions and shaped KeyDevs into a global digital corporation."},
+    {"name": "Junaid", "title": "Co-Founder", "bio": "Visionary who established KeyDevs as a leading game, web, and mobile app development firm with offices in Pakistan and the USA. Specializes in PHP, iOS, and Android technologies."},
+    {"name": "Rehan ur Rehman", "title": "Co-Founder / Director", "bio": "Over 10 years as an IT Consultant. Drives evolution into a top game, web, and mobile app development company with offices in USA and Pakistan. Focuses on marketing, business development, and e-commerce."}
+  ],
+
+  "company_values": [
+    "Seamless and Stress-free Delivery — regular status updates, scope control, customer engagement",
+    "Innovative Solutions Provider — tailored solutions at the forefront of tech innovation",
+    "Long Client Relationships — building lasting partnerships with mutual support",
+    "Client-Focused Delivery — ensuring no two projects are the same"
+  ],
+
+  "process": [
+    {"step": "01 Discover", "details": "Requirement gathering, timeline planning, commercials"},
+    {"step": "02 UI/UX Design", "details": "Wireframe designing, prototyping, brand styling & preset creation"},
+    {"step": "03 Prototyping", "details": "Low-fidelity and high-fidelity prototyping, applying design thinking"},
+    {"step": "04 Development", "details": "Technology selection, API integrations, agile development in action"},
+    {"step": "05 Quality Assurance", "details": "User test creation, manual testing, automation testing"},
+    {"step": "06 Deployment", "details": "Application handover, marketplace launches, app store submissions"},
+    {"step": "07 Support & Maintenance", "details": "Troubleshooting, 24/7 support, managed services"}
+  ],
+
+  "engagement_models": ["Part-time Hiring", "Full-time Hiring", "Hourly Hiring"],
+
+  "notable_clients_and_projects": [
+    {"client": "Multan Chemicals Limited", "project": "Website development for a confectionery company with a full ERP system to track manufacturing and sales operations"},
+    {"client": "Atlas Fuel (Australia)", "project": "ERP system development with MYOB integration for an Australian client"},
+    {"client": "Delivery Shark (UK)", "project": "Super app with Food Delivery, Ride, and Handyman Services with real-time tracking"},
+    {"client": "Al-Iftar Foods", "project": "Website development for a confectionery company with full ERP system"},
+    {"client": "Beejan Techsol", "project": "Ride booking app development with Reward and MLM system"},
+    {"client": "Flyashs", "project": "Online travel and tourism system with flight booking functionality"},
+    {"client": "Loyal Reliance (UK)", "project": "Website and CRM for a security and cleaning company"},
+    {"client": "Alghazi Tractors", "project": "E-commerce platform with mobile apps to provide genuine parts to customers"},
+    {"client": "Ehome Plus", "project": "Robust e-commerce online store"},
+    {"client": "Unikoop", "project": "Dynamic, user-friendly e-commerce website"}
+  ],
+
+  "client_testimonial_highlights": [
+    "Brilliant programmer who consistently adhered to various changes and extras — Gurjeet Singh, India",
+    "KeyDevs understood my project directly and had a lot of good ideas — Janek K., Germany",
+    "Excelled in delivering all required tasks efficiently, impressive Unity development understanding — Mehdi M., France",
+    "Outstanding work and excellent communication, surpass expectations — Patrick W., Canada",
+    "Exceptional capabilities delivering high-quality work with remarkable speed — Mahmoud D., United States",
+    "True team players with remarkable integrity, attentive to business needs — Shahzaib S., Australia (CEO, Atlas Fuel)"
+  ],
+
+  "brand_voice": {
+    "tone": "Professional, confident, solution-oriented. Speaks like an established, decade-old tech agency — not overly casual, not overly corporate-stiff. Emphasizes craftsmanship ('perfection is a habit'), partnership, and proven track record.",
+    "style_notes": "Uses concrete numbers and proof points (110+ projects, 90+ five-star reviews, 4.8/5.0 on Clutch, 40+ team members). Frequently references the agile process and long-term client relationships. Talks about 'transforming visions into reality' and being a 'trusted ally' rather than just a vendor. Avoids generic hype; grounds claims in specific client industries (taxi, food delivery, real estate, fintech, etc.) and named case studies.",
+    "keywords_to_use": ["bespoke", "tailored solutions", "agile execution", "dedicated team", "digital transformation", "state-of-the-art", "scalable", "long-term partnership", "innovation"],
+    "avoid": ["cheap", "quick fix", "generic", "overhyped buzzwords without substance", "one-size-fits-all"]
+  },
+
+  "visual_identity": {
+    "primary_color": "#008080",
+    "primary_color_name": "Teal",
+    "logo_path": "brand/assets/logo.png",
+    "style": "Clean, professional, corporate. Light backgrounds, teal accents, numbered process steps, stat counters, card-based sections."
+  },
+
+  "target_audience": "Startups, SMEs, and enterprises in Pakistan and internationally (UK, USA, Canada, Australia, UAE, Europe) looking for a tech-savvy web and mobile app development partner rather than just a vendor.",
+
+  "social_links": {
+    "facebook": "https://www.facebook.com/keydevs",
+    "linkedin": "https://pk.linkedin.com/company/keydevs"
+  },
+
+  "contact": {
+    "email": "sales@keydevs.com",
+    "phone": "+92 321 7851671",
+    "offices": [
+      "Lahore: 30B A1 Block, Johar Town, Lahore, Pakistan",
+      "United States: 8 The Green, Suite A, Dover, DE 19901",
+      "Dubai: 12 Opp. Alkhail Mall, Al Quoz, Dubai"
+    ]
+  },
+
+  "source_note": "Compiled from a 43-page scrape of keydevs.pk on 2026-06-19. Update this file as the website or company details change."
 }
