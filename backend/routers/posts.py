@@ -5,7 +5,6 @@ from db.connection import get_pool
 
 router = APIRouter()
 
-# In-memory workflow state store (until LangGraph checkpointer is configured)
 _workflow_states: dict = {}
 
 
@@ -20,6 +19,12 @@ class ImageFeedbackRequest(BaseModel):
     approved: bool
 
 
+class LogoPositionRequest(BaseModel):
+    x:     float  # 0.0 - 1.0, fractional X of top-left corner
+    y:     float  # 0.0 - 1.0, fractional Y of top-left corner
+    scale: float = 0.16  # logo width as fraction of image width
+
+
 class FinalApprovalRequest(BaseModel):
     approved:         bool
     content_feedback: str = ""
@@ -29,8 +34,6 @@ class FinalApprovalRequest(BaseModel):
 
 @router.post("/create")
 async def create_post(req: CreatePostRequest):
-    """Start a new post workflow — runs agents and pauses for image review"""
-    from workflows.post_workflow import build_workflow
     from agents.supervisor      import run_supervisor
     from agents.planner         import run_planner
     from agents.content_doer    import run_content_doer
@@ -39,7 +42,6 @@ async def create_post(req: CreatePostRequest):
 
     post_id = str(uuid4())
 
-    # Run agents sequentially (parallel needs LangGraph checkpointer)
     state = {
         "goal":             req.goal,
         "platform":         req.platform,
@@ -53,8 +55,10 @@ async def create_post(req: CreatePostRequest):
         "brief":            "",
         "content":          "",
         "image_url":        "",
+        "raw_image_url":    "",
         "image_prompt":     "",
         "quality_report":   "",
+        "logo_position":    None,
     }
 
     state = await run_supervisor(state)
@@ -63,38 +67,77 @@ async def create_post(req: CreatePostRequest):
     state = await run_image_agent(state)
     state = await run_quality_checker(state)
 
-    # Save state in memory for resume
     _workflow_states[post_id] = state
 
-    # Save to PostgreSQL
     pool = get_pool()
     async with pool.acquire() as conn:
-        # Ensure default campaign exists
         await conn.execute("""
             INSERT INTO campaigns (id, goal, status)
             VALUES ('00000000-0000-0000-0000-000000000001', 'Default Campaign', 'active')
             ON CONFLICT (id) DO NOTHING
         """)
-
         await conn.execute("""
             INSERT INTO posts (id, campaign_id, platform, content, image_url, status)
             VALUES ($1, '00000000-0000-0000-0000-000000000001', $2, $3, $4, 'image_review')
         """, post_id, req.platform, state.get("content", ""), state.get("image_url", ""))
 
     return {
-        "post_id":       post_id,
-        "status":        "awaiting_image_review",
-        "content":       state.get("content"),
-        "image_url":     state.get("image_url"),
+        "post_id":        post_id,
+        "status":         "awaiting_image_review",
+        "content":        state.get("content"),
+        "image_url":      state.get("image_url"),
+        "raw_image_url":  state.get("raw_image_url"),
         "quality_report": state.get("quality_report"),
     }
+
+
+# ── POST /api/posts/{post_id}/logo-position ───────────────────────────────────
+# Re-applies the logo at a human-chosen position WITHOUT regenerating the image
+
+@router.post("/{post_id}/logo-position")
+async def set_logo_position(post_id: str, req: LogoPositionRequest):
+    from agents.image_agent import add_logo_watermark
+    import httpx, uuid, os
+
+    state = _workflow_states.get(post_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Workflow state not found. Please create post again.")
+
+    raw_url = state.get("raw_image_url")
+    if not raw_url:
+        raise HTTPException(status_code=400, detail="No raw image available to reposition logo on.")
+
+    # Download the raw (un-watermarked) image
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.get(raw_url)
+        resp.raise_for_status()
+        raw_bytes = resp.content
+
+    position = {"x": req.x, "y": req.y, "scale": req.scale}
+    final_bytes = add_logo_watermark(raw_bytes, position)
+
+    STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "generated")
+    filename   = f"{uuid.uuid4().hex}.jpg"
+    file_path  = os.path.join(STATIC_DIR, filename)
+    with open(file_path, "wb") as f:
+        f.write(final_bytes)
+
+    new_image_url = f"http://localhost:8000/static/generated/{filename}"
+    state["image_url"]     = new_image_url
+    state["logo_position"] = position
+    _workflow_states[post_id] = state
+
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE posts SET image_url=$1 WHERE id=$2", new_image_url, post_id)
+
+    return {"image_url": new_image_url}
 
 
 # ── POST /api/posts/{post_id}/image-feedback ──────────────────────────────────
 
 @router.post("/{post_id}/image-feedback")
 async def submit_image_feedback(post_id: str, req: ImageFeedbackRequest):
-    """Human reviews image — approve or request regeneration"""
     from agents.image_agent import run_image_agent
 
     state = _workflow_states.get(post_id)
@@ -105,7 +148,6 @@ async def submit_image_feedback(post_id: str, req: ImageFeedbackRequest):
     state["human_approved"] = req.approved
 
     if not req.approved:
-        # Regenerate image with feedback
         state["iteration"] += 1
         state = await run_image_agent(state)
         _workflow_states[post_id] = state
@@ -118,17 +160,15 @@ async def submit_image_feedback(post_id: str, req: ImageFeedbackRequest):
             )
 
         return {
-            "status":    "image_regenerated",
-            "image_url": state.get("image_url"),
-            "iteration": state.get("iteration"),
+            "status":        "image_regenerated",
+            "image_url":     state.get("image_url"),
+            "raw_image_url": state.get("raw_image_url"),
+            "iteration":     state.get("iteration"),
         }
 
-    # Approved — move to final review
     pool = get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
-            "UPDATE posts SET status='final_review' WHERE id=$1", post_id
-        )
+        await conn.execute("UPDATE posts SET status='final_review' WHERE id=$1", post_id)
 
     return {"status": "final_review", "image_url": state.get("image_url")}
 
@@ -137,7 +177,6 @@ async def submit_image_feedback(post_id: str, req: ImageFeedbackRequest):
 
 @router.post("/{post_id}/approve")
 async def final_approve(post_id: str, req: FinalApprovalRequest):
-    """Final human approval — approve to publish or reject to revise content"""
     from agents.content_doer import run_content_doer
 
     state = _workflow_states.get(post_id)
@@ -145,7 +184,6 @@ async def final_approve(post_id: str, req: FinalApprovalRequest):
         raise HTTPException(status_code=404, detail="Workflow state not found.")
 
     if not req.approved:
-        # Revise content with feedback
         state["content_feedback"] = req.content_feedback
         state["human_approved"]   = False
         state = await run_content_doer(state)
@@ -160,12 +198,9 @@ async def final_approve(post_id: str, req: FinalApprovalRequest):
 
         return {"status": "content_revised", "content": state.get("content")}
 
-    # Approved — mark as ready to publish
     pool = get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(
-            "UPDATE posts SET status='approved' WHERE id=$1", post_id
-        )
+        await conn.execute("UPDATE posts SET status='approved' WHERE id=$1", post_id)
 
     _workflow_states.pop(post_id, None)
     return {"status": "approved", "message": "Post approved and ready to publish"}
@@ -175,17 +210,12 @@ async def final_approve(post_id: str, req: FinalApprovalRequest):
 
 @router.get("/")
 async def list_posts(status: str = None):
-    """List all posts, optionally filter by status"""
     pool = get_pool()
     async with pool.acquire() as conn:
         if status:
-            rows = await conn.fetch(
-                "SELECT * FROM posts WHERE status=$1 ORDER BY created_at DESC", status
-            )
+            rows = await conn.fetch("SELECT * FROM posts WHERE status=$1 ORDER BY created_at DESC", status)
         else:
-            rows = await conn.fetch(
-                "SELECT * FROM posts ORDER BY created_at DESC"
-            )
+            rows = await conn.fetch("SELECT * FROM posts ORDER BY created_at DESC")
     return [dict(r) for r in rows]
 
 
@@ -193,20 +223,22 @@ async def list_posts(status: str = None):
 
 @router.get("/{post_id}")
 async def get_post(post_id: str):
-    """Get a single post by ID"""
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM posts WHERE id=$1", post_id)
     if not row:
         raise HTTPException(status_code=404, detail="Post not found")
-    return dict(row)
+    result = dict(row)
+    state = _workflow_states.get(post_id)
+    if state:
+        result["raw_image_url"] = state.get("raw_image_url")
+    return result
 
 
 # ── DELETE /api/posts/{post_id} ───────────────────────────────────────────────
 
 @router.delete("/{post_id}")
 async def delete_post(post_id: str):
-    """Delete a post"""
     pool = get_pool()
     async with pool.acquire() as conn:
         result = await conn.execute("DELETE FROM posts WHERE id=$1", post_id)

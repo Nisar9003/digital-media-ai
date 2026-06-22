@@ -1,10 +1,12 @@
 # Content Doer Agent — Claude Sonnet
 # Writes caption, hooks, hashtags, CTA — using company brand voice
+# DEBUG MODE: prints real error instead of silently falling back
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage, HumanMessage
 from brand.loader import get_brand_context_string
 import os
+import traceback
 
 llm = ChatAnthropic(
     model="claude-sonnet-4-6",
@@ -42,7 +44,12 @@ async def run_content_doer(state: dict) -> dict:
             HumanMessage(content=prompt)
         ])
         state["content"] = response.content
-    except Exception:
-        state["content"] = '{"hook": "Draft hook", "body": "Draft content", "cta": "Learn more", "hashtags": ["#webdevelopment", "#KeyDevs"]}'
+    except Exception as e:
+        print("=" * 60)
+        print("CONTENT_DOER ERROR (real cause):")
+        print(repr(e))
+        traceback.print_exc()
+        print("=" * 60)
+        state["content"] = '{"hook": "Draft hook", "body": "Draft content", "cta": "Learn more", "hashtags": ["#ai", "#socialmedia"]}'
 
     return state
