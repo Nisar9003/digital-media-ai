@@ -42,6 +42,16 @@ export default function Dashboard() {
 
   useEffect(() => { fetchPosts(); }, [filter]);
 
+  async function handleDelete(postId: string) {
+    if (!confirm("Delete this post permanently? This cannot be undone.")) return;
+    try {
+      await fetch(`${BASE_URL}/api/posts/${postId}`, { method: "DELETE" });
+      setPosts(prev => prev.filter(p => p.id !== postId));
+    } catch {
+      alert("Could not delete post. Try again.");
+    }
+  }
+
   const stats = {
     total:     posts.length,
     published: posts.filter(p => p.status === "published").length,
@@ -170,7 +180,21 @@ export default function Dashboard() {
                         <p style={{ fontSize: 10.5, color: "var(--muted)" }}>{post.id?.slice(0,8)}…</p>
                       </div>
                     </div>
-                    <span style={{ background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20 }}>{sc.label}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20 }}>{sc.label}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(post.id); }}
+                        title="Delete post"
+                        style={{
+                          background: "transparent", border: "1px solid var(--border)", color: "var(--muted)",
+                          width: 24, height: 24, borderRadius: 6, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 13, lineHeight: 1, padding: 0,
+                        }}
+                        onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#E0533D"; (e.currentTarget as HTMLButtonElement).style.color = "#E0533D"; }}
+                        onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--muted)"; }}
+                      >✕</button>
+                    </div>
                   </div>
 
                   {post.image_url && (

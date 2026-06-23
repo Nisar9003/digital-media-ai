@@ -56,9 +56,11 @@ async def create_post(req: CreatePostRequest):
         "content":          "",
         "image_url":        "",
         "raw_image_url":    "",
+        "composed_image_url": "",
         "image_prompt":     "",
         "quality_report":   "",
         "logo_position":    None,
+        "poster_copy":      None,
     }
 
     state = await run_supervisor(state)
@@ -82,12 +84,13 @@ async def create_post(req: CreatePostRequest):
         """, post_id, req.platform, state.get("content", ""), state.get("image_url", ""))
 
     return {
-        "post_id":        post_id,
-        "status":         "awaiting_image_review",
-        "content":        state.get("content"),
-        "image_url":      state.get("image_url"),
-        "raw_image_url":  state.get("raw_image_url"),
-        "quality_report": state.get("quality_report"),
+        "post_id":            post_id,
+        "status":             "awaiting_image_review",
+        "content":            state.get("content"),
+        "image_url":          state.get("image_url"),
+        "raw_image_url":      state.get("raw_image_url"),
+        "composed_image_url": state.get("composed_image_url"),
+        "quality_report":     state.get("quality_report"),
     }
 
 
@@ -103,13 +106,15 @@ async def set_logo_position(post_id: str, req: LogoPositionRequest):
     if not state:
         raise HTTPException(status_code=404, detail="Workflow state not found. Please create post again.")
 
-    raw_url = state.get("raw_image_url")
-    if not raw_url:
-        raise HTTPException(status_code=400, detail="No raw image available to reposition logo on.")
+    # Use the COMPOSED image (poster text included, no logo) as the base for
+    # logo placement — this way the text stays visible while positioning.
+    base_url = state.get("composed_image_url") or state.get("raw_image_url")
+    if not base_url:
+        raise HTTPException(status_code=400, detail="No base image available to reposition logo on.")
 
-    # Download the raw (un-watermarked) image
+    # Download the composed (text included, logo-free) image
     async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(raw_url)
+        resp = await client.get(base_url)
         resp.raise_for_status()
         raw_bytes = resp.content
 
@@ -160,10 +165,11 @@ async def submit_image_feedback(post_id: str, req: ImageFeedbackRequest):
             )
 
         return {
-            "status":        "image_regenerated",
-            "image_url":     state.get("image_url"),
-            "raw_image_url": state.get("raw_image_url"),
-            "iteration":     state.get("iteration"),
+            "status":             "image_regenerated",
+            "image_url":          state.get("image_url"),
+            "raw_image_url":      state.get("raw_image_url"),
+            "composed_image_url": state.get("composed_image_url"),
+            "iteration":          state.get("iteration"),
         }
 
     pool = get_pool()
@@ -231,7 +237,8 @@ async def get_post(post_id: str):
     result = dict(row)
     state = _workflow_states.get(post_id)
     if state:
-        result["raw_image_url"] = state.get("raw_image_url")
+        result["raw_image_url"]      = state.get("raw_image_url")
+        result["composed_image_url"] = state.get("composed_image_url")
     return result
 
 

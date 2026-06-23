@@ -37,7 +37,7 @@ export default function ImageReview() {
       router.push(`/approve/${id}`);
     } else {
       setIteration(data.iteration || iteration + 1);
-      setPost((p: any) => ({ ...p, image_url: data.image_url, raw_image_url: data.raw_image_url }));
+      setPost((p: any) => ({ ...p, image_url: data.image_url, raw_image_url: data.raw_image_url, composed_image_url: data.composed_image_url }));
       setFeedback(""); setLoading(false); setAction(null);
     }
   }
@@ -85,7 +85,7 @@ export default function ImageReview() {
     }
   }
 
-  const displayImage = positioning ? (post?.raw_image_url || post?.image_url) : post?.image_url;
+  const displayImage = positioning ? (post?.composed_image_url || post?.raw_image_url || post?.image_url) : post?.image_url;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-soft)" }}>
@@ -114,7 +114,7 @@ export default function ImageReview() {
                 ? <img src={displayImage} alt="Generated" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", pointerEvents: "none" }} />
                 : <div className="skeleton" style={{ width: "85%", height: "85%" }} />
               }
-              {positioning && post?.raw_image_url && (
+              {positioning && (post?.composed_image_url || post?.raw_image_url) && (
                 <img
                   src="/logo.png"
                   alt="logo preview"
@@ -132,7 +132,7 @@ export default function ImageReview() {
               )}
             </div>
 
-            {post?.raw_image_url && (
+            {(post?.composed_image_url || post?.raw_image_url) && (
               <div style={{ marginTop: 14 }}>
                 {!positioning ? (
                   <button onClick={() => setPositioning(true)} style={{

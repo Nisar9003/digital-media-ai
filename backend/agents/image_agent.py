@@ -1,5 +1,5 @@
-# Image Agent — Google Gemini (Nano Banana, free tier) is PRIMARY generator
-# Pollinations.ai is the fallback if Gemini key is missing or the call fails
+# Image Agent — Hugging Face Inference (Stable Diffusion XL / FLUX, free tier) is PRIMARY
+# Pollinations.ai is the fallback if HF key is missing or the call fails
 # Generates clean branded-template style graphics (solid backgrounds, simple shapes)
 # Logo position is controlled by the human via logo_position in state (set from frontend)
 
@@ -63,47 +63,83 @@ def add_logo_watermark(base_image_bytes: bytes, position: dict = None) -> bytes:
 
 
 def build_prompt(platform: str, goal: str, feedback: str) -> str:
-    """Branded template style: solid/gradient background, simple flat shapes,
-    no photo-realism, no text (even Gemini's text rendering isn't reliable
-    enough for small logo-less brand templates at this stage)."""
+    """This generates ONLY the background artwork — no text, no UI mockups,
+    no icons. Headlines/highlights/CTA are rendered separately by
+    poster_composer.py using Pillow, since AI image models cannot reliably
+    render readable text or complex multi-element layouts.
+
+    IMPORTANT: when human feedback is given (e.g. "make it white"), that
+    instruction must take priority over the default styling — otherwise the
+    hardcoded default color fights with the feedback and the model ignores
+    what the human actually asked for."""
+
+    default_style = (
+        "with a deep navy blue gradient, subtle glowing abstract technology "
+        "shapes and soft light particles, darker toward the bottom half"
+    )
+
     prompt = (
-        f"Flat design branded social media template for {platform}. "
-        f"Solid teal and dark navy color background, simple minimal geometric shapes, "
-        f"clean corporate tech aesthetic, flat vector illustration style, no text, no words, no letters, "
-        f"no photorealism, plenty of empty negative space, modern SaaS branding style. "
-        f"Theme: {goal}."
+        f"A premium corporate background image {default_style if not feedback else ''}. "
+        f"Minimalist, elegant, high-end software company aesthetic. "
+        f"The mood reflects: {goal}. "
+        f"No text, no words, no letters, no UI screens, no icons, no people. "
+        f"Single smooth cohesive background, leaving clear empty space in the "
+        f"lower half for text overlay, suitable for a {platform} post."
     )
     if feedback:
-        prompt += f" Adjust: {feedback}, keep it flat design, no text."
+        # The human's instruction is now the PRIMARY style directive, not an
+        # afterthought appended to a conflicting default.
+        prompt += f" Required style: {feedback}. This instruction overrides any other color or mood description."
     return prompt
 
 
-async def generate_with_gemini(prompt: str) -> bytes:
-    """Primary generator: Google Gemini (gemini-2.5-flash-image / Nano Banana).
-    Free tier: ~500 requests/day via API key from aistudio.google.com/apikey"""
-    from google import genai
-    from google.genai import types
+def build_contact_footer() -> str:
+    """Pulls contact info straight from profile.json — same data the
+    content_doer caption footer uses — formatted as a single thin line
+    for the bottom strip of the poster image itself."""
+    from brand.loader import load_brand_profile
 
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    if not api_key or api_key in ("your-gemini-key-here", ""):
-        raise RuntimeError("GEMINI_API_KEY not set")
+    profile = load_brand_profile()
+    contact = profile.get("contact", {})
+    website = profile.get("website", "").replace("https://", "").replace("http://", "")
 
-    client = genai.Client(api_key=api_key)
+    parts = []
+    if website:
+        parts.append(website)
+    if contact.get("email"):
+        parts.append(contact["email"])
+    if contact.get("phone"):
+        parts.append(contact["phone"])
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-image",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_modalities=["IMAGE"],
-            image_config=types.ImageConfig(aspect_ratio="1:1"),
-        ),
-    )
+    return "   |   ".join(parts)
 
-    for part in response.candidates[0].content.parts:
-        if getattr(part, "inline_data", None) is not None:
-            return part.inline_data.data
 
-    raise RuntimeError("Gemini returned no image data")
+async def generate_with_huggingface(prompt: str) -> bytes:
+    """Primary generator: Hugging Face Inference API (Stable Diffusion XL).
+    Free tier: rate-limited (a few hundred requests/hour), no billing required.
+    Get a free token at https://huggingface.co/settings/tokens"""
+    from huggingface_hub import InferenceClient
+
+    api_key = os.getenv("HUGGINGFACE_API_KEY", "")
+    if not api_key or api_key in ("your-huggingface-key-here", ""):
+        raise RuntimeError("HUGGINGFACE_API_KEY not set")
+
+    client = InferenceClient(api_key=api_key)
+
+    # Run the blocking HF call in a thread so it doesn't block the event loop
+    import asyncio
+    loop = asyncio.get_event_loop()
+
+    def _generate():
+        image = client.text_to_image(
+            prompt,
+            model="black-forest-labs/FLUX.1-schnell",
+        )
+        buf = BytesIO()
+        image.save(buf, format="JPEG", quality=92)
+        return buf.getvalue()
+
+    return await loop.run_in_executor(None, _generate)
 
 
 async def generate_with_pollinations(clean_prompt: str) -> bytes:
@@ -117,9 +153,10 @@ async def generate_with_pollinations(clean_prompt: str) -> bytes:
 
 
 async def run_image_agent(state: dict) -> dict:
-    feedback = state.get("image_feedback", "")
-    platform = state.get("platform", "linkedin")
-    goal     = state.get("goal", "")
+    feedback     = state.get("image_feedback", "")
+    platform     = state.get("platform", "linkedin")
+    goal         = state.get("goal", "")
+    poster_copy  = state.get("poster_copy")  # set by content_doer, may be None
 
     raw_prompt   = build_prompt(platform, goal, feedback)
     clean_prompt = raw_prompt.encode("ascii", errors="ignore").decode("ascii")
@@ -127,12 +164,12 @@ async def run_image_agent(state: dict) -> dict:
 
     image_bytes = None
 
-    # Try Gemini first (best quality, free tier)
+    # Try Hugging Face first (best quality, free tier)
     try:
-        image_bytes = await generate_with_gemini(clean_prompt)
+        image_bytes = await generate_with_huggingface(clean_prompt)
     except Exception as e:
         print("=" * 60)
-        print("GEMINI IMAGE ERROR (falling back to Pollinations):")
+        print("HUGGING FACE IMAGE ERROR (falling back to Pollinations):")
         print(repr(e))
         traceback.print_exc()
         print("=" * 60)
@@ -145,22 +182,43 @@ async def run_image_agent(state: dict) -> dict:
             print(f"Pollinations fallback also failed: {e}")
             raise
 
-    # Store the RAW (un-watermarked) image so the frontend can let the
-    # human reposition the logo without regenerating the whole image.
+    # Store the RAW background (no poster text, no logo) so the frontend can
+    # let the human reposition the logo without regenerating the artwork.
     raw_filename = f"raw_{uuid.uuid4().hex}.jpg"
     raw_path     = os.path.join(STATIC_DIR, raw_filename)
     with open(raw_path, "wb") as f:
         f.write(image_bytes)
 
+    # If we have structured poster copy (headline/sub_headline/highlights/cta),
+    # render it onto the background BEFORE applying the logo watermark.
+    composed_bytes = image_bytes
+    if poster_copy and any(poster_copy.get(k) for k in ("headline", "sub_headline", "highlights", "cta")):
+        try:
+            from agents.poster_composer import compose_poster
+            contact_footer = build_contact_footer()
+            composed_bytes = compose_poster(image_bytes, poster_copy, contact_footer=contact_footer)
+        except Exception as e:
+            print(f"Poster composition error: {e} — using background without text overlay")
+            composed_bytes = image_bytes
+
+    # Save the COMPOSED version (poster text included, no logo yet) — this is
+    # what the frontend should show during logo repositioning, so the text
+    # stays visible while the human drags the logo around.
+    composed_filename = f"composed_{uuid.uuid4().hex}.jpg"
+    composed_path      = os.path.join(STATIC_DIR, composed_filename)
+    with open(composed_path, "wb") as f:
+        f.write(composed_bytes)
+
     logo_position = state.get("logo_position")
-    final_bytes   = add_logo_watermark(image_bytes, logo_position)
+    final_bytes   = add_logo_watermark(composed_bytes, logo_position)
 
     filename  = f"{uuid.uuid4().hex}.jpg"
     file_path = os.path.join(STATIC_DIR, filename)
     with open(file_path, "wb") as f:
         f.write(final_bytes)
 
-    state["raw_image_url"] = f"http://localhost:8000/static/generated/{raw_filename}"
-    state["image_url"]     = f"http://localhost:8000/static/generated/{filename}"
-    state["image_prompt"]  = clean_prompt
+    state["raw_image_url"]      = f"http://localhost:8000/static/generated/{raw_filename}"
+    state["composed_image_url"] = f"http://localhost:8000/static/generated/{composed_filename}"
+    state["image_url"]          = f"http://localhost:8000/static/generated/{filename}"
+    state["image_prompt"]       = clean_prompt
     return state

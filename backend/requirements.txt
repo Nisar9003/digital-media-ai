@@ -18,11 +18,11 @@ alembic==1.13.1
 # ── Image Generation ──
 fal-client==0.4.0
 httpx==0.27.0
-google-genai==2.9.0
+huggingface_hub==1.20.1
 
 # ── Observability ──
 langsmith==0.8.16
 
 # ── Utils ──
 python-dotenv==1.0.1
-pydantic==2.7.1
+pydantic>=2.7.4

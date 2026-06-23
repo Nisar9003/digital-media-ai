@@ -1,16 +1,17 @@
-# Planner Agent — Claude Sonnet
+# Planner Agent — Groq (LLaMA 3.3, free tier)
 # Creates a detailed content brief using company brand context
-# DEBUG MODE: prints real error instead of silently falling back
 
-from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from brand.loader import get_brand_context_string
 import os
 import traceback
 
-llm = ChatAnthropic(
-    model="claude-sonnet-4-6",
-    api_key=os.getenv("ANTHROPIC_API_KEY", "dummy")
+# Groq uses OpenAI-compatible API — completely free, no billing required
+llm = ChatOpenAI(
+    model="llama-3.3-70b-versatile",
+    api_key=os.getenv("GROQ_API_KEY", "dummy"),
+    base_url="https://api.groq.com/openai/v1"
 )
 
 def build_system_prompt() -> str:
