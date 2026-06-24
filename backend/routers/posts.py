@@ -9,9 +9,11 @@ _workflow_states: dict = {}
 
 
 class CreatePostRequest(BaseModel):
-    goal:        str
-    platform:    str
-    campaign_id: str = "default"
+    goal:          str
+    platform:      str
+    campaign_id:   str = "default"
+    image_mode:    str = "branded"   # "branded" (poster with text+logo) or "free_prompt" (raw AI image, no overlay)
+    custom_prompt: str = ""          # used only when image_mode == "free_prompt"
 
 
 class ImageFeedbackRequest(BaseModel):
@@ -61,11 +63,21 @@ async def create_post(req: CreatePostRequest):
         "quality_report":   "",
         "logo_position":    None,
         "poster_copy":      None,
+        "poster_layout":    "centered",
+        "image_mode":       req.image_mode,
+        "custom_prompt":    req.custom_prompt,
     }
 
     state = await run_supervisor(state)
     state = await run_planner(state)
     state = await run_content_doer(state)
+
+    # In free_prompt mode, the caption still gets written normally above,
+    # but we clear poster_copy so image_agent skips the text/logo overlay
+    # entirely and just returns the raw AI image as-is.
+    if req.image_mode == "free_prompt":
+        state["poster_copy"] = None
+
     state = await run_image_agent(state)
     state = await run_quality_checker(state)
 
@@ -91,6 +103,7 @@ async def create_post(req: CreatePostRequest):
         "raw_image_url":      state.get("raw_image_url"),
         "composed_image_url": state.get("composed_image_url"),
         "quality_report":     state.get("quality_report"),
+        "image_mode":         state.get("image_mode", "branded"),
     }
 
 
@@ -170,6 +183,7 @@ async def submit_image_feedback(post_id: str, req: ImageFeedbackRequest):
             "raw_image_url":      state.get("raw_image_url"),
             "composed_image_url": state.get("composed_image_url"),
             "iteration":          state.get("iteration"),
+            "image_mode":         state.get("image_mode", "branded"),
         }
 
     pool = get_pool()
@@ -239,6 +253,7 @@ async def get_post(post_id: str):
     if state:
         result["raw_image_url"]      = state.get("raw_image_url")
         result["composed_image_url"] = state.get("composed_image_url")
+        result["image_mode"]         = state.get("image_mode", "branded")
     return result
 
 

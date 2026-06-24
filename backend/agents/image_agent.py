@@ -1,8 +1,3 @@
-# Image Agent — Hugging Face Inference (Stable Diffusion XL / FLUX, free tier) is PRIMARY
-# Pollinations.ai is the fallback if HF key is missing or the call fails
-# Generates clean branded-template style graphics (solid backgrounds, simple shapes)
-# Logo position is controlled by the human via logo_position in state (set from frontend)
-
 import httpx
 import os
 import re
@@ -153,12 +148,26 @@ async def generate_with_pollinations(clean_prompt: str) -> bytes:
 
 
 async def run_image_agent(state: dict) -> dict:
-    feedback     = state.get("image_feedback", "")
-    platform     = state.get("platform", "linkedin")
-    goal         = state.get("goal", "")
-    poster_copy  = state.get("poster_copy")  # set by content_doer, may be None
+    feedback      = state.get("image_feedback", "")
+    platform      = state.get("platform", "linkedin")
+    goal          = state.get("goal", "")
+    poster_copy   = state.get("poster_copy")  # set by content_doer, may be None
+    poster_layout = state.get("poster_layout", "centered")  # "centered" or "split"
+    image_mode    = state.get("image_mode", "branded")  # "branded" or "free_prompt"
+    custom_prompt = state.get("custom_prompt", "")
 
-    raw_prompt   = build_prompt(platform, goal, feedback)
+    if image_mode == "free_prompt" and custom_prompt.strip():
+        # Free Prompt Mode: use the human's exact prompt, completely unmodified.
+        # No "no people"/"no text" restrictions, no poster overlay, no logo —
+        # this is for photorealistic/lifestyle images requested as-is.
+        raw_prompt = custom_prompt
+        # Regeneration feedback (if any) is appended as an additional note,
+        # never silently overridden like the branded-mode prompt builder does.
+        if feedback:
+            raw_prompt += f" Additional adjustment: {feedback}."
+    else:
+        raw_prompt = build_prompt(platform, goal, feedback)
+
     clean_prompt = raw_prompt.encode("ascii", errors="ignore").decode("ascii")
     clean_prompt = re.sub(r'\s+', ' ', clean_prompt).strip()
 
@@ -189,28 +198,34 @@ async def run_image_agent(state: dict) -> dict:
     with open(raw_path, "wb") as f:
         f.write(image_bytes)
 
-    # If we have structured poster copy (headline/sub_headline/highlights/cta),
-    # render it onto the background BEFORE applying the logo watermark.
-    composed_bytes = image_bytes
-    if poster_copy and any(poster_copy.get(k) for k in ("headline", "sub_headline", "highlights", "cta")):
-        try:
-            from agents.poster_composer import compose_poster
-            contact_footer = build_contact_footer()
-            composed_bytes = compose_poster(image_bytes, poster_copy, contact_footer=contact_footer)
-        except Exception as e:
-            print(f"Poster composition error: {e} — using background without text overlay")
-            composed_bytes = image_bytes
+    if image_mode == "free_prompt":
+        # Free Prompt Mode: skip poster text overlay AND logo watermark
+        # entirely — the human asked for the raw generated image as-is.
+        composed_bytes = image_bytes
+        final_bytes    = image_bytes
+        composed_filename = raw_filename  # same file, no separate composed version needed
+    else:
+        # Branded mode: overlay poster copy (headline/highlights/CTA) then logo.
+        composed_bytes = image_bytes
+        if poster_copy and any(poster_copy.get(k) for k in ("headline", "sub_headline", "highlights", "cta")):
+            try:
+                from agents.poster_composer import compose_poster
+                contact_footer = build_contact_footer()
+                composed_bytes = compose_poster(image_bytes, poster_copy, contact_footer=contact_footer, layout=poster_layout)
+            except Exception as e:
+                print(f"Poster composition error: {e} — using background without text overlay")
+                composed_bytes = image_bytes
 
-    # Save the COMPOSED version (poster text included, no logo yet) — this is
-    # what the frontend should show during logo repositioning, so the text
-    # stays visible while the human drags the logo around.
-    composed_filename = f"composed_{uuid.uuid4().hex}.jpg"
-    composed_path      = os.path.join(STATIC_DIR, composed_filename)
-    with open(composed_path, "wb") as f:
-        f.write(composed_bytes)
+        # Save the COMPOSED version (poster text included, no logo yet) — this is
+        # what the frontend should show during logo repositioning, so the text
+        # stays visible while the human drags the logo around.
+        composed_filename = f"composed_{uuid.uuid4().hex}.jpg"
+        composed_path      = os.path.join(STATIC_DIR, composed_filename)
+        with open(composed_path, "wb") as f:
+            f.write(composed_bytes)
 
-    logo_position = state.get("logo_position")
-    final_bytes   = add_logo_watermark(composed_bytes, logo_position)
+        logo_position = state.get("logo_position")
+        final_bytes    = add_logo_watermark(composed_bytes, logo_position)
 
     filename  = f"{uuid.uuid4().hex}.jpg"
     file_path = os.path.join(STATIC_DIR, filename)
