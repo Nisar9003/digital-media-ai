@@ -57,34 +57,56 @@ def add_logo_watermark(base_image_bytes: bytes, position: dict = None) -> bytes:
         return base_image_bytes
 
 
-def build_prompt(platform: str, goal: str, feedback: str) -> str:
-    """This generates ONLY the background artwork — no text, no UI mockups,
-    no icons. Headlines/highlights/CTA are rendered separately by
-    poster_composer.py using Pillow, since AI image models cannot reliably
-    render readable text or complex multi-element layouts.
+def build_prompt(platform: str, goal: str, feedback: str, visual_concept: str = "abstract",
+                  visual_description: str = "") -> str:
+    """This generates ONLY the background artwork — actual headline/highlights/
+    CTA text is rendered separately by poster_composer.py using Pillow, since
+    AI image models cannot reliably render readable text.
 
-    IMPORTANT: when human feedback is given (e.g. "make it white"), that
-    instruction must take priority over the default styling — otherwise the
-    hardcoded default color fights with the feedback and the model ignores
-    what the human actually asked for."""
+    IMPORTANT DESIGN PRINCIPLE: nothing here is a fixed/hardcoded subject.
+    `visual_description` (written fresh by content_doer.py for every single
+    post) is the ONLY source of what actually appears in the image — a
+    laptop, a phone, icons, a desk, anything. `visual_concept` only selects
+    a general PHOTOGRAPHY/RENDERING STYLE (lighting, realism level), never
+    forces a specific object into the scene. If visual_description is empty,
+    we fall back to a plain abstract background rather than guessing an object.
 
-    default_style = (
-        "with a deep navy blue gradient, subtle glowing abstract technology "
-        "shapes and soft light particles, darker toward the bottom half"
+    Regeneration feedback is the single highest-priority instruction. It is
+    placed LAST and stated explicitly as overriding everything before it —
+    so "no laptop, just a phone" or "remove the desk" genuinely changes the
+    next generation instead of being diluted by earlier fixed wording."""
+
+    style_by_concept = {
+        "device_mockup":   "Professional product photography style, soft studio lighting, shallow depth of field, premium tech aesthetic.",
+        "workspace_photo": "Realistic photo, natural daylight, shallow depth of field, warm and professional mood, shot like a high-quality stock photo.",
+        "icons_grid":       "Flat modern illustration style, soft shadows, clean and minimal, consistent color palette.",
+        "abstract":         "Minimalist, elegant, high-end software company aesthetic, smooth gradient, darker toward the bottom half.",
+    }
+    style = style_by_concept.get(visual_concept, style_by_concept["abstract"])
+
+    subject = visual_description.strip() if visual_description else (
+        "A premium corporate background with soft abstract shapes and subtle gradient lighting."
     )
+
+    no_text_clause = "No readable text, no words, no letters, no logos."
+    space_clause = "Leave clear empty space in the lower half of the image for a text overlay that will be added separately."
 
     prompt = (
-        f"A premium corporate background image {default_style if not feedback else ''}. "
-        f"Minimalist, elegant, high-end software company aesthetic. "
+        f"{subject} {style} "
         f"The mood reflects: {goal}. "
-        f"No text, no words, no letters, no UI screens, no icons, no people. "
-        f"Single smooth cohesive background, leaving clear empty space in the "
-        f"lower half for text overlay, suitable for a {platform} post."
+        f"{no_text_clause} {space_clause} "
+        f"Single cohesive composition, not a collage, suitable for a {platform} post."
     )
+
     if feedback:
-        # The human's instruction is now the PRIMARY style directive, not an
-        # afterthought appended to a conflicting default.
-        prompt += f" Required style: {feedback}. This instruction overrides any other color or mood description."
+        # The human's instruction is the single highest-priority directive —
+        # it can change colors, mood, AND the actual subject/content of the
+        # scene (e.g. "remove the laptop", "make it just a phone", "add a
+        # plant on the desk"). It is stated last and explicitly so the model
+        # treats it as overriding everything described above, not as a
+        # minor style tweak appended to a fixed scene.
+        prompt += f" IMPORTANT OVERRIDE — apply this change exactly: {feedback}. This instruction takes priority over every description above, including the subject, objects, colors, and mood."
+
     return prompt
 
 
@@ -166,7 +188,9 @@ async def run_image_agent(state: dict) -> dict:
         if feedback:
             raw_prompt += f" Additional adjustment: {feedback}."
     else:
-        raw_prompt = build_prompt(platform, goal, feedback)
+        visual_concept     = state.get("visual_concept", "abstract")
+        visual_description = state.get("visual_description", "")
+        raw_prompt = build_prompt(platform, goal, feedback, visual_concept, visual_description)
 
     clean_prompt = raw_prompt.encode("ascii", errors="ignore").decode("ascii")
     clean_prompt = re.sub(r'\s+', ' ', clean_prompt).strip()

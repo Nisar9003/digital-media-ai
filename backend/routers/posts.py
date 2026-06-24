@@ -64,6 +64,8 @@ async def create_post(req: CreatePostRequest):
         "logo_position":    None,
         "poster_copy":      None,
         "poster_layout":    "centered",
+        "visual_concept":   "abstract",
+        "visual_description": "",
         "image_mode":       req.image_mode,
         "custom_prompt":    req.custom_prompt,
     }

@@ -28,6 +28,8 @@ Respond in JSON format only, with this exact structure:
   "cta": "call to action for the caption",
   "hashtags": ["#tag1", "#tag2", "#tag3"],
   "poster_layout": "centered" or "split",
+  "visual_concept": "abstract" or "device_mockup" or "workspace_photo" or "icons_grid",
+  "visual_description": "a short, specific description (1-2 sentences) of what should actually be IN the background image, based on the goal — see guidance below",
   "poster": {{
     "headline": "short punchy headline, max 6 words, for the IMAGE itself",
     "sub_headline": "one short supporting line, max 12 words",
@@ -47,6 +49,33 @@ For "poster_layout", choose:
   greeting card.
 - "centered" — for everything else (service promotion, product announcements,
   case studies, general marketing). This is the default for business content.
+
+For "visual_concept", pick the option that best matches what the post is
+actually about — this controls what the AI-generated background image will
+contain:
+- "device_mockup" — if the goal is about a website, app, dashboard, or any
+  digital product/screen (e.g. "we redesigned a website", "new app launch").
+  The background will show a laptop/phone/browser mockup displaying a clean
+  modern interface.
+- "workspace_photo" — if the goal is about a team, process, working style, or
+  a relatable everyday business/professional moment (e.g. "our design
+  process", "meet the team", general thought-leadership). The background
+  will be a realistic photo-style scene (desk, laptop, people working,
+  natural lighting).
+- "icons_grid" — if the goal explicitly involves multiple platforms,
+  channels, or a list of distinct tools/services (e.g. "we post on every
+  social platform", "our tech stack"). The background will show small
+  relevant icon-like shapes arranged around the edges.
+- "abstract" — default fallback for general branding, announcements, or
+  anything that doesn't fit the above (gradient background with soft
+  geometric shapes, no concrete objects). Use this whenever you're unsure.
+
+For "visual_description", write what the background should show in plain,
+concrete language (e.g. "A laptop screen showing a clean, modern website
+homepage with a navigation bar and hero image" or "A tidy desk with a laptop,
+notebook, and coffee cup, shot from a slight angle, natural daylight").
+Keep it to 1-2 sentences. This will be combined with style instructions
+automatically — do not mention colors, branding, or text in this field.
 
 Do NOT include contact details (email, phone, website) yourself —
 that will be added automatically after your response.
@@ -104,6 +133,11 @@ async def run_content_doer(state: dict) -> dict:
         if state["poster_layout"] not in ("centered", "split"):
             state["poster_layout"] = "centered"
 
+        state["visual_concept"] = parsed.get("visual_concept", "abstract")
+        if state["visual_concept"] not in ("abstract", "device_mockup", "workspace_photo", "icons_grid"):
+            state["visual_concept"] = "abstract"
+        state["visual_description"] = parsed.get("visual_description", "")
+
     except Exception as e:
         print("=" * 60)
         print("CONTENT_DOER ERROR (real cause):")
@@ -126,5 +160,7 @@ async def run_content_doer(state: dict) -> dict:
         state["content"] = json.dumps(fallback)
         state["poster_copy"] = fallback["poster"]
         state["poster_layout"] = "centered"
+        state["visual_concept"] = "abstract"
+        state["visual_description"] = ""
 
     return state
