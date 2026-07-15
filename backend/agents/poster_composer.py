@@ -1,3 +1,14 @@
+# Poster Composer
+# Takes a text-free AI-generated background + structured copy (headline, sub-headline,
+# highlights, CTA) and renders a complete marketing poster using Pillow.
+# This is the "layered" approach: AI generates the background art, code renders the text —
+# because AI image models cannot reliably render readable text inside an image.
+#
+# Two layouts are supported:
+#   "centered" — text block centered in the lower portion (good for promo/ad posts)
+#   "split"    — left side reserved for background art, right side is a solid text
+#                 panel (good for greeting/occasion posts, e.g. Eid, New Year, anniversary)
+
 import os
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont

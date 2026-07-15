@@ -1,10 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
 
 export default function Nav({ active = "" }: { active?: string }) {
-  const [logoError, setLogoError] = useState(false);
-
   return (
     <nav style={{
       background: "#fff", borderBottom: "1px solid var(--border)",
@@ -13,21 +10,12 @@ export default function Nav({ active = "" }: { active?: string }) {
       position: "sticky", top: 0, zIndex: 100,
     }}>
       <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-        {!logoError ? (
-          <img
-            src="/logo.png"
-            alt="KeyDevs"
-            onError={() => setLogoError(true)}
-            style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 8 }}
-          />
-        ) : (
-          <div style={{
-            width: 36, height: 36, borderRadius: 9,
-            background: "linear-gradient(135deg, #008080, #00A3A3)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontWeight: 800, fontSize: 15, fontFamily: "'Plus Jakarta Sans', sans-serif",
-          }}>K</div>
-        )}
+        <div style={{
+          width: 36, height: 36, borderRadius: 9,
+          background: "linear-gradient(135deg, #008080, #00A3A3)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", fontWeight: 800, fontSize: 15, fontFamily: "'Plus Jakarta Sans', sans-serif",
+        }}>K</div>
         <div>
           <div style={{ fontWeight: 800, fontSize: 15, color: "var(--ink)", fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.1 }}>
             KeyDevs <span style={{ color: "var(--teal)" }}>MediaAI</span>

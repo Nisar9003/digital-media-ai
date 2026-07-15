@@ -1,3 +1,6 @@
+# Planner Agent — Groq (LLaMA 3.3, free tier)
+# Creates a detailed content brief using company brand context
+
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from brand.loader import get_brand_context_string

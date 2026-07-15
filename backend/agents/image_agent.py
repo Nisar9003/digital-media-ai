@@ -1,3 +1,8 @@
+# Image Agent — Hugging Face Inference (Stable Diffusion XL / FLUX, free tier) is PRIMARY
+# Pollinations.ai is the fallback if HF key is missing or the call fails
+# Generates clean branded-template style graphics (solid backgrounds, simple shapes)
+# Logo position is controlled by the human via logo_position in state (set from frontend)
+
 import httpx
 import os
 import re
